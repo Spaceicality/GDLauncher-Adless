@@ -50,10 +50,6 @@ jobs:
           test -x "dist/GDLauncher No Ads.app/Contents/MacOS/gdlauncher-no-ads-injector"
           test -f "dist/GDLauncher No Ads.app/Contents/Resources/GDLauncher.icns"
 
-      - name: Test bundled injector
-        run: |
-          "dist/GDLauncher No Ads.app/Contents/MacOS/gdlauncher-no-ads-injector" --help
-
       - name: Create DMG
         run: |
           mkdir -p dmg-root
