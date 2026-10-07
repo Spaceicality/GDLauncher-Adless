@@ -29,6 +29,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Build injector
+        run: |
+          pyinstaller \
+            --onefile \
+            --name gdlauncher-no-ads-injector \
+            --distpath injector-dist \
+            --workpath injector-build \
+            injector.py
 
       - name: Build application
         run: |
@@ -38,14 +48,22 @@ jobs:
         run: |
           test -d "dist/GDLauncher No Ads.app"
           test -f "dist/GDLauncher No Ads.app/Contents/Info.plist"
-          test -f "dist/GDLauncher No Ads.app/Contents/MacOS/GDLauncher-No-Ads"
-          test -f "dist/GDLauncher No Ads.app/Contents/MacOS/injector.py"
+          test -x "dist/GDLauncher No Ads.app/Contents/MacOS/GDLauncher-No-Ads"
+          test -x "dist/GDLauncher No Ads.app/Contents/MacOS/gdlauncher-no-ads-injector"
           test -f "dist/GDLauncher No Ads.app/Contents/Resources/GDLauncher.icns"
+
+      - name: Test bundled injector
+        run: |
+          "dist/GDLauncher No Ads.app/Contents/MacOS/gdlauncher-no-ads-injector" --help
 
       - name: Create application archive
         run: |
           cd dist
-          ditto -c -k --sequesterRsrc --keepParent \
+          ditto \
+            -c \
+            -k \
+            --sequesterRsrc \
+            --keepParent \
             "GDLauncher No Ads.app" \
             "GDLauncher-No-Ads-macOS.zip"
 

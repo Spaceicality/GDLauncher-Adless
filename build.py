@@ -16,7 +16,8 @@ MACOS = CONTENTS / "MacOS"
 RESOURCES = CONTENTS / "Resources"
 
 INJECTOR_SOURCE = ROOT / "injector.py"
-INJECTOR_DEST = MACOS / "injector.py"
+INJECTOR_BUILD = ROOT / "injector-dist" / "gdlauncher-no-ads-injector"
+INJECTOR_DEST = MACOS / "gdlauncher-no-ads-injector"
 
 ICON_DEST = RESOURCES / "GDLauncher.icns"
 APP_EXECUTABLE = MACOS / "GDLauncher-No-Ads"
@@ -27,20 +28,36 @@ def clean_build():
         print(f"Removing existing build directory: {DIST}")
         shutil.rmtree(DIST)
 
+    if (ROOT / "injector-build").exists():
+        print("Removing previous injector build...")
+        shutil.rmtree(ROOT / "injector-build")
+
+    if (ROOT / "injector-dist").exists():
+        print("Removing previous injector distribution...")
+        shutil.rmtree(ROOT / "injector-dist")
+
 
 def create_directories():
     MACOS.mkdir(parents=True, exist_ok=True)
     RESOURCES.mkdir(parents=True, exist_ok=True)
 
 
-def copy_injector():
-    if not INJECTOR_SOURCE.is_file():
+def verify_injector():
+    if not INJECTOR_BUILD.is_file():
         raise RuntimeError(
-            f"Could not find injector.py at:\n{INJECTOR_SOURCE}"
+            "Could not find the bundled injector executable:\n"
+            f"{INJECTOR_BUILD}\n\n"
+            "Make sure PyInstaller has been run before build.py."
         )
 
-    print("Copying injector.py...")
-    shutil.copy2(INJECTOR_SOURCE, INJECTOR_DEST)
+
+def copy_injector():
+    verify_injector()
+
+    print("Copying bundled injector...")
+    shutil.copy2(INJECTOR_BUILD, INJECTOR_DEST)
+
+    INJECTOR_DEST.chmod(0o755)
 
 
 def create_icon():
@@ -59,14 +76,11 @@ def create_icon():
 def create_launcher():
     print("Creating application launcher...")
 
-    python_path = sys.executable
-
-    launcher = f'''#!/bin/zsh
+    launcher = '''#!/bin/zsh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-exec "{python_path}" \\
-    "$SCRIPT_DIR/injector.py"
+exec "$SCRIPT_DIR/gdlauncher-no-ads-injector"
 '''
 
     APP_EXECUTABLE.write_text(
