@@ -1,0 +1,19 @@
+# Build output
+dist/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# macOS
+.DS_Store
+
+# IDE/editor files
+.vscode/
+.idea/

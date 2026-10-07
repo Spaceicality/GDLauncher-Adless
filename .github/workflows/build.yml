@@ -1,0 +1,50 @@
+name: Build GDLauncher No Ads
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    name: Build macOS App
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install certifi
+
+      - name: Build application
+        run: |
+          python build.py
+
+      - name: Verify application
+        run: |
+          test -d "dist/GDLauncher No Ads.app"
+          test -f "dist/GDLauncher No Ads.app/Contents/Info.plist"
+          test -f "dist/GDLauncher No Ads.app/Contents/MacOS/GDLauncher-No-Ads"
+          test -f "dist/GDLauncher No Ads.app/Contents/MacOS/injector.py"
+          test -f "dist/GDLauncher No Ads.app/Contents/Resources/GDLauncher.icns"
+
+      - name: Upload application
+        uses: actions/upload-artifact@v4
+        with:
+          name: GDLauncher-No-Ads-macOS
+          path: "dist/GDLauncher No Ads.app"
+          if-no-files-found: error
