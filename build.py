@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import sys
@@ -16,8 +17,16 @@ MACOS = CONTENTS / "MacOS"
 RESOURCES = CONTENTS / "Resources"
 
 INJECTOR_SOURCE = ROOT / "injector.py"
-INJECTOR_BUILD = ROOT / "injector-dist" / "gdlauncher-no-ads-injector"
-INJECTOR_DEST = MACOS / "gdlauncher-no-ads-injector"
+INJECTOR_DIST = ROOT / "injector-dist"
+INJECTOR_BUILD = ROOT / "injector-build"
+
+INJECTOR_BINARY = (
+    INJECTOR_DIST / "gdlauncher-no-ads-injector"
+)
+
+INJECTOR_DEST = (
+    MACOS / "gdlauncher-no-ads-injector"
+)
 
 ICON_DEST = RESOURCES / "GDLauncher.icns"
 APP_EXECUTABLE = MACOS / "GDLauncher-No-Ads"
@@ -28,34 +37,92 @@ def clean_build():
         print(f"Removing existing build directory: {DIST}")
         shutil.rmtree(DIST)
 
-    if (ROOT / "injector-build").exists():
-        print("Removing previous injector build...")
-        shutil.rmtree(ROOT / "injector-build")
-
-    if (ROOT / "injector-dist").exists():
-        print("Removing previous injector distribution...")
-        shutil.rmtree(ROOT / "injector-dist")
-
 
 def create_directories():
     MACOS.mkdir(parents=True, exist_ok=True)
     RESOURCES.mkdir(parents=True, exist_ok=True)
 
 
-def verify_injector():
-    if not INJECTOR_BUILD.is_file():
+def build_injector():
+    configured_path = os.environ.get("INJECTOR_BINARY")
+
+    if configured_path:
+        configured_binary = Path(configured_path)
+
+        if configured_binary.is_file():
+            print("Using injector supplied by environment:")
+            print(f"  {configured_binary}")
+            return configured_binary
+
         raise RuntimeError(
-            "Could not find the bundled injector executable:\n"
-            f"{INJECTOR_BUILD}\n\n"
-            "Make sure PyInstaller has been run before build.py."
+            "INJECTOR_BINARY was specified, but the file does not exist:\n"
+            f"{configured_binary}"
         )
 
+    if INJECTOR_BINARY.is_file():
+        print("Using existing injector:")
+        print(f"  {INJECTOR_BINARY}")
+        return INJECTOR_BINARY
 
-def copy_injector():
-    verify_injector()
+    if not INJECTOR_SOURCE.is_file():
+        raise RuntimeError(
+            f"Could not find injector.py at:\n{INJECTOR_SOURCE}"
+        )
 
+    print("Building injector with PyInstaller...")
+
+    if INJECTOR_BUILD.exists():
+        shutil.rmtree(INJECTOR_BUILD)
+
+    if INJECTOR_DIST.exists():
+        shutil.rmtree(INJECTOR_DIST)
+
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "PyInstaller",
+                "--onefile",
+                "--name",
+                "gdlauncher-no-ads-injector",
+                "--distpath",
+                str(INJECTOR_DIST),
+                "--workpath",
+                str(INJECTOR_BUILD),
+                "--specpath",
+                str(INJECTOR_BUILD),
+                str(INJECTOR_SOURCE),
+            ],
+            cwd=ROOT,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(
+            "PyInstaller failed while building the injector."
+        ) from exc
+
+    if not INJECTOR_BINARY.is_file():
+        raise RuntimeError(
+            "PyInstaller completed, but the injector executable was not found:\n"
+            f"{INJECTOR_BINARY}"
+        )
+
+    print("Injector built successfully:")
+    print(f"  {INJECTOR_BINARY}")
+
+    return INJECTOR_BINARY
+
+
+def copy_injector(injector):
     print("Copying bundled injector...")
-    shutil.copy2(INJECTOR_BUILD, INJECTOR_DEST)
+    print(f"  Source: {injector}")
+    print(f"  Target: {INJECTOR_DEST}")
+
+    shutil.copy2(
+        injector,
+        INJECTOR_DEST,
+    )
 
     INJECTOR_DEST.chmod(0o755)
 
@@ -70,7 +137,10 @@ def create_icon():
             "Could not import icon.py."
         ) from exc
 
-    create_icon("mac", ICON_DEST)
+    create_icon(
+        "mac",
+        ICON_DEST,
+    )
 
 
 def create_launcher():
@@ -173,8 +243,11 @@ def main():
     print()
 
     clean_build()
+
+    injector = build_injector()
+
     create_directories()
-    copy_injector()
+    copy_injector(injector)
     create_icon()
     create_launcher()
     create_info_plist()

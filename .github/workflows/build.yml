@@ -4,11 +4,13 @@ on:
   push:
     branches:
       - main
+      - carbon
     tags:
       - "v*"
   pull_request:
     branches:
       - main
+      - carbon
   workflow_dispatch:
 
 jobs:
@@ -31,15 +33,6 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install pyinstaller
 
-      - name: Build injector
-        run: |
-          pyinstaller \
-            --onefile \
-            --name gdlauncher-no-ads-injector \
-            --distpath injector-dist \
-            --workpath injector-build \
-            injector.py
-
       - name: Build application
         run: |
           python build.py
@@ -47,10 +40,18 @@ jobs:
       - name: Verify application
         run: |
           test -d "dist/GDLauncher No Ads.app"
-          test -f "dist/GDLauncher No Ads.app/Contents/Info.plist"
-          test -x "dist/GDLauncher No Ads.app/Contents/MacOS/GDLauncher-No-Ads"
-          test -x "dist/GDLauncher No Ads.app/Contents/MacOS/gdlauncher-no-ads-injector"
-          test -f "dist/GDLauncher No Ads.app/Contents/Resources/GDLauncher.icns"
+
+          test -f \
+            "dist/GDLauncher No Ads.app/Contents/Info.plist"
+
+          test -x \
+            "dist/GDLauncher No Ads.app/Contents/MacOS/GDLauncher-No-Ads"
+
+          test -x \
+            "dist/GDLauncher No Ads.app/Contents/MacOS/gdlauncher-no-ads-injector"
+
+          test -f \
+            "dist/GDLauncher No Ads.app/Contents/Resources/GDLauncher.icns"
 
       - name: Test bundled injector
         run: |
@@ -59,6 +60,7 @@ jobs:
       - name: Create application archive
         run: |
           cd dist
+
           ditto \
             -c \
             -k \
@@ -66,6 +68,10 @@ jobs:
             --keepParent \
             "GDLauncher No Ads.app" \
             "GDLauncher-No-Ads-macOS.zip"
+
+      - name: Verify archive
+        run: |
+          unzip -l "dist/GDLauncher-No-Ads-macOS.zip"
 
       - name: Upload application
         uses: actions/upload-artifact@v4

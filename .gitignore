@@ -1,12 +1,14 @@
 # Build output
 dist/
+injector-dist/
+injector-build/
 
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Python virtual environments
+# Virtual environments
 .venv/
 venv/
 env/
@@ -14,6 +16,6 @@ env/
 # macOS
 .DS_Store
 
-# IDE/editor files
+# IDE/editor
 .vscode/
 .idea/
